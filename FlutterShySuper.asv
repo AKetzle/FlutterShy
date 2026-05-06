@@ -18,11 +18,11 @@ g_h = 0.000;
 g_alpha = 0.000;
 
 % simulation parameters
-site_altitude = 2936; % altitude of launch site above sea level (MUST MATCH RAS SIM), feet
+site_altitude = ; % altitude of launch site above sea level (MUST MATCH RAS SIM), feet
 RAS_Filepath = "E:\External Media\Rocketry\Space Cowboys Misc\5 - Bandit\simulations 4-20-2026\Bandit-Midland-4-20-2026.CSV"; % filepath to the RASAERO II flight sim file (.csv)
 invkstepsize = 0.0001;
 invkMax = 8;
-machGate = 1.01;
+machGate = 1.01; % Don't change this unless you know what you're doing
 %% Calculation
 
 b = c / 2; % average semi-chord, ft
@@ -113,6 +113,7 @@ plot(RAS_Vel,V_f);
 xlabel("Simulation Velocity (ft/s)");
 ylabel("Flutter Velocity (ft/s)");
 title("Flutter Velocity vs. Sim Velocity");
+fontsize(16,"points");
 
 figure(Name="Flutter Mach vs. Sim Mach");
 plot(RAS_Mach,M_f);
@@ -122,6 +123,7 @@ xline(1.2);
 xlabel("Sim Mach");
 ylabel("Flutter Mach");
 title("Flutter Mach vs. Sim Mach");
+fontsize(16,"points");
 
 figure(Name="Mach Numbers vs. Time");
 plot(RAS_Time,RAS_Mach,RAS_Time,M_f)
@@ -131,6 +133,7 @@ xlabel("Time (s)");
 ylabel("Mach Number");
 title("Mach Numbers vs. Time");
 xlim([0,apoTime])
+fontsize(16,"points");
 
 figure(Name="Flutter Factor of Safety vs. Dynamic Pressure");
 plot(q,fs_flutter)
@@ -138,6 +141,7 @@ ylim([0,inf])
 xlabel("Dynamic Pressure (lbf/ft^2)");
 ylabel("Flutter Factor of Safety");
 title("Flutter Factor of Safety vs. Dynamic Pressure");
+fontsize(16,"points");
 
 figure(Name="Flutter Factor of Safety vs. Altitude");
 plot(RAS_Alt,fs_flutter);
@@ -147,6 +151,7 @@ yline(1)
 xlabel("Altitude (ft)");
 ylabel("Flutter Factor of Safety");
 title("Flutter Factor of Safety vs. Altitude");
+fontsize(16,"points");
 
 figure(Name="Flutter FS vs. Sim Mach");
 plot(RAS_Mach,fs_flutter);
@@ -156,6 +161,7 @@ xline(1.2);
 xlabel("Sim Mach");
 ylabel("Flutter FS");
 title("Flutter FS vs. Sim Mach");
+fontsize(16,"points");
 
 figure(Name="Flutter Velocity vs. Time");
 plot(RAS_Time,V_f,LineWidth=1.5);
@@ -222,11 +228,8 @@ function [Uf, flutterPoint] = TR496TR685(freq_alpha, freq_h, a_h, x_alpha, r_alp
     
     X_R1 = (-delta_R_B - sqrt(delta_R_B.^2 - (4 .* delta_R_A .* delta_R_C))) ./ (2 .* delta_R_A);
     X_R2 = (-delta_R_B + sqrt(delta_R_B.^2 - (4 .* delta_R_A .* delta_R_C))) ./ (2 .* delta_R_A);
-    
-    X_I1 = ((-delta_I_B - sqrt(delta_I_B.^2 - (4 .* delta_I_A .* delta_I_C))) ./ (2 .* delta_I_A))
 
-
-    if(~delta_I_A == 0) % change this to an inline math eq
+    if(~delta_I_A == 0) % change this to an inline math eq when you figure out mu's deal
         X_I1 = (-delta_I_B - sqrt(delta_I_B.^2 - (4 .* delta_I_A .* delta_I_C))) ./ (2 .* delta_I_A);
         X_I2 = (-delta_I_B + sqrt(delta_I_B.^2 - (4 .* delta_I_A .* delta_I_C))) ./ (2 .* delta_I_A);
     else
@@ -250,13 +253,16 @@ function [Uf, flutterPoint] = TR496TR685(freq_alpha, freq_h, a_h, x_alpha, r_alp
     
     solutionmatrix = [k; k_inv; X_R1; X_R2; X_I1; rt_X_R1; rt_X_R2; rt_X_I1; rt_X_I2];
     
-    if (~isnan(rt_X_I1)) % change this to an inline math eq
-        XRatio1 = abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(8,:)));
-        XRatio2 = abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(8,:)));
-    else
-        XRatio1 = abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(9,:)));
-        XRatio2 = abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(9,:)));
-    end
+    XRatio1 = (abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(8,:))) .* (~isnan(rt_X_I1))) + (abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(9,:))) .* (isnan(rt_X_I1)));
+    XRatio2 = (abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(8,:))) .* (~isnan(rt_X_I1))) + (abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(9,:))) .* (isnan(rt_X_I1)));
+    
+    % if (~isnan(rt_X_I1)) % change this to an inline math eq
+    %     XRatio1 = abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(8,:)));
+    %     XRatio2 = abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(8,:)));
+    % else
+    %     XRatio1 = abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(9,:)));
+    %     XRatio2 = abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(9,:)));
+    % end
     
     [~,idx1] = find(XRatio1 == min(XRatio1,[],"omitnan"));
     [~,idx2] = find(XRatio2 == min(XRatio2,[],"omitnan"));
@@ -264,17 +270,11 @@ function [Uf, flutterPoint] = TR496TR685(freq_alpha, freq_h, a_h, x_alpha, r_alp
     r2 = XRatio2(:,idx2);
     if(r1 < r2)
         flutterPoint = solutionmatrix(:,idx1);
-        flutter_rtX = flutterPoint(6);
         Uf = freq_alpha .* b .* flutterPoint(2) ./ flutterPoint(6);
-        flutterFreq = freq_alpha ./ flutterPoint(6) ./ (2 .* pi());
     else
         flutterPoint = solutionmatrix(:,idx2);
-        flutter_rtX = flutterPoint(7);
         Uf = freq_alpha .* b .* flutterPoint(2) ./ flutterPoint(7);
-        flutterFreq = freq_alpha ./ flutterPoint(7) ./ (2 .* pi());
     end
-    inv_kf = flutterPoint(2);
-    kf = flutterPoint(1);
 end
 
 function V_f_sup = kearnsSupersonic(mu, r_bar, RAS_Mach, x_bar, b, freq_h, freq_alpha, machGate)

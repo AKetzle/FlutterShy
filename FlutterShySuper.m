@@ -7,22 +7,22 @@ clc, clear, close all;
 %% User Inputs
 
 % fin parameters
-c = (12 + 3) / 12 / 2; % fin average chord, ft
-m = 0.591 ./ (6.3/12) ./ 32.174; % mass per unit span, slug / ft (span)
-x_bar = 0.5; % chord-normalized distance from c.g. to elastic axis, % chord
-r_bar = 0.57781; % chord-normalized radius of gyration, % chord
-freq_h = 1847.47019; % bending frequency, rad/s
-freq_alpha = 2936.66049; % torsion frequency, rad/s
-a_h = 0.5;
-g_h = 0.000;
-g_alpha = 0.000;
+c = 0; % fin average chord, ft
+m = 0; % mass per unit span, slug / ft (span)
+x_bar = 0.5; % chord-normalized distance from c.g. to leading edge, per chord
+r_bar = 0; % chord-normalized radius of gyration, % chord
+freq_h = 0; % bending frequency, rad/s
+freq_alpha = 0; % torsion frequency, rad/s
+a_h = 0.5; % chord-normalized distance from elastic axis to leading edge, per chord
+g_h = 0.000; % bending damping ratio
+g_alpha = 0.000; % torsion damping ratio
 
 % simulation parameters
-site_altitude = 2936; % altitude of launch site above sea level (MUST MATCH RAS SIM), feet
-RAS_Filepath = "E:\External Media\Rocketry\Space Cowboys Misc\5 - Bandit\simulations 4-20-2026\Bandit-Midland-4-20-2026.CSV"; % filepath to the RASAERO II flight sim file (.csv)
-invkstepsize = 0.0001;
-invkMax = 8;
-machGate = 1.01;
+site_altitude = 0; % altitude of launch site above sea level (MUST MATCH RAS SIM), feet
+RAS_Filepath = "FILE PATH HERE"; % filepath to the RASAERO II flight sim file (.csv)
+invkstepsize = 0.0001; % increasing resolution exponentially increases calculation time
+invkMax = 8; % max 1/k value to calc to
+machGate = 1.01; % Don't change this unless you know what you're doing
 %% Calculation
 
 b = c / 2; % average semi-chord, ft
@@ -37,7 +37,7 @@ RAS_Mach = RAS_DATA(1:apoidx,4);
 RAS_Vel = RAS_DATA(1:apoidx,18);
 % Note to self: Just use atmos.m, not the calibrated one, it's closer to what RAS is saying
 [rho,~,T,a,~] = atmos(RAS_Alt + site_altitude); % get the atmospheric properties at each RAS time step
-mu = m ./ (pi() .* rho .* b^2); % mass ratio parameter
+mu = m ./ (pi() .* rho .* b.^2); % mass ratio parameter
 q = 0.5 .* rho .* RAS_Vel.^2;
 
 % Supersonic
@@ -113,6 +113,7 @@ plot(RAS_Vel,V_f);
 xlabel("Simulation Velocity (ft/s)");
 ylabel("Flutter Velocity (ft/s)");
 title("Flutter Velocity vs. Sim Velocity");
+fontsize(16,"points");
 
 figure(Name="Flutter Mach vs. Sim Mach");
 plot(RAS_Mach,M_f);
@@ -122,6 +123,7 @@ xline(1.2);
 xlabel("Sim Mach");
 ylabel("Flutter Mach");
 title("Flutter Mach vs. Sim Mach");
+fontsize(16,"points");
 
 figure(Name="Mach Numbers vs. Time");
 plot(RAS_Time,RAS_Mach,RAS_Time,M_f)
@@ -131,6 +133,7 @@ xlabel("Time (s)");
 ylabel("Mach Number");
 title("Mach Numbers vs. Time");
 xlim([0,apoTime])
+fontsize(16,"points");
 
 figure(Name="Flutter Factor of Safety vs. Dynamic Pressure");
 plot(q,fs_flutter)
@@ -138,6 +141,7 @@ ylim([0,inf])
 xlabel("Dynamic Pressure (lbf/ft^2)");
 ylabel("Flutter Factor of Safety");
 title("Flutter Factor of Safety vs. Dynamic Pressure");
+fontsize(16,"points");
 
 figure(Name="Flutter Factor of Safety vs. Altitude");
 plot(RAS_Alt,fs_flutter);
@@ -147,6 +151,7 @@ yline(1)
 xlabel("Altitude (ft)");
 ylabel("Flutter Factor of Safety");
 title("Flutter Factor of Safety vs. Altitude");
+fontsize(16,"points");
 
 figure(Name="Flutter FS vs. Sim Mach");
 plot(RAS_Mach,fs_flutter);
@@ -156,6 +161,7 @@ xline(1.2);
 xlabel("Sim Mach");
 ylabel("Flutter FS");
 title("Flutter FS vs. Sim Mach");
+fontsize(16,"points");
 
 figure(Name="Flutter Velocity vs. Time");
 plot(RAS_Time,V_f,LineWidth=1.5);
@@ -277,3 +283,11 @@ function V_f_sup = kearnsSupersonic(mu, r_bar, RAS_Mach, x_bar, b, freq_h, freq_
     sqrt2D = 2 * (1 + (freq_h ./ freq_alpha).^2);
     V_f_sup = freq_alpha .* b .* sqrt(sqrt1 .* (sqrt2N ./ sqrt2D));
 end
+
+%% Todo list
+%{ 
+Accept multiple unit systems
+fix subsonic to use vector mu so that for loop can go away
+ensure you can have multiple input vectors so this can be used in optimization stuff
+tear things apart from the file so you can use this without a ras sim and just a set of conditions
+%}
