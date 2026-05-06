@@ -222,8 +222,11 @@ function [Uf, flutterPoint] = TR496TR685(freq_alpha, freq_h, a_h, x_alpha, r_alp
     
     X_R1 = (-delta_R_B - sqrt(delta_R_B.^2 - (4 .* delta_R_A .* delta_R_C))) ./ (2 .* delta_R_A);
     X_R2 = (-delta_R_B + sqrt(delta_R_B.^2 - (4 .* delta_R_A .* delta_R_C))) ./ (2 .* delta_R_A);
+    
+    X_I1 = ((-delta_I_B - sqrt(delta_I_B.^2 - (4 .* delta_I_A .* delta_I_C))) ./ (2 .* delta_I_A))
 
-    if(~delta_I_A == 0) % change this to an inline math eq when you figure out mu's deal
+
+    if(~delta_I_A == 0) % change this to an inline math eq
         X_I1 = (-delta_I_B - sqrt(delta_I_B.^2 - (4 .* delta_I_A .* delta_I_C))) ./ (2 .* delta_I_A);
         X_I2 = (-delta_I_B + sqrt(delta_I_B.^2 - (4 .* delta_I_A .* delta_I_C))) ./ (2 .* delta_I_A);
     else
@@ -247,16 +250,13 @@ function [Uf, flutterPoint] = TR496TR685(freq_alpha, freq_h, a_h, x_alpha, r_alp
     
     solutionmatrix = [k; k_inv; X_R1; X_R2; X_I1; rt_X_R1; rt_X_R2; rt_X_I1; rt_X_I2];
     
-    XRatio1 = (abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(8,:))) .* (~isnan(rt_X_I1))) + (abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(9,:))) .* (isnan(rt_X_I1)));
-    XRatio2 = (abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(8,:))) .* (~isnan(rt_X_I1))) + (abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(9,:))) .* (isnan(rt_X_I1)));
-    
-    % if (~isnan(rt_X_I1)) % change this to an inline math eq
-    %     XRatio1 = abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(8,:)));
-    %     XRatio2 = abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(8,:)));
-    % else
-    %     XRatio1 = abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(9,:)));
-    %     XRatio2 = abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(9,:)));
-    % end
+    if (~isnan(rt_X_I1)) % change this to an inline math eq
+        XRatio1 = abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(8,:)));
+        XRatio2 = abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(8,:)));
+    else
+        XRatio1 = abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(9,:)));
+        XRatio2 = abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(9,:)));
+    end
     
     [~,idx1] = find(XRatio1 == min(XRatio1,[],"omitnan"));
     [~,idx2] = find(XRatio2 == min(XRatio2,[],"omitnan"));
@@ -264,11 +264,17 @@ function [Uf, flutterPoint] = TR496TR685(freq_alpha, freq_h, a_h, x_alpha, r_alp
     r2 = XRatio2(:,idx2);
     if(r1 < r2)
         flutterPoint = solutionmatrix(:,idx1);
+        flutter_rtX = flutterPoint(6);
         Uf = freq_alpha .* b .* flutterPoint(2) ./ flutterPoint(6);
+        flutterFreq = freq_alpha ./ flutterPoint(6) ./ (2 .* pi());
     else
         flutterPoint = solutionmatrix(:,idx2);
+        flutter_rtX = flutterPoint(7);
         Uf = freq_alpha .* b .* flutterPoint(2) ./ flutterPoint(7);
+        flutterFreq = freq_alpha ./ flutterPoint(7) ./ (2 .* pi());
     end
+    inv_kf = flutterPoint(2);
+    kf = flutterPoint(1);
 end
 
 function V_f_sup = kearnsSupersonic(mu, r_bar, RAS_Mach, x_bar, b, freq_h, freq_alpha, machGate)
