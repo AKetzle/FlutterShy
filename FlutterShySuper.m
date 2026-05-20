@@ -10,7 +10,7 @@ clc, clear, close all;
 c = 0; % fin average chord, ft
 m = 0; % mass per unit span, slug / ft (span)
 x_bar = 0.5; % chord-normalized distance from c.g. to leading edge, per chord
-r_bar = 0; % chord-normalized radius of gyration, % chord
+r_bar = 0; % semichord-normalized radius of gyration, % chord
 freq_h = 0; % bending frequency, rad/s
 freq_alpha = 0; % torsion frequency, rad/s
 a_h = 0.5; % chord-normalized distance from elastic axis to leading edge, per chord
@@ -20,6 +20,8 @@ g_alpha = 0.000; % torsion damping ratio
 % simulation parameters
 site_altitude = 0; % altitude of launch site above sea level (MUST MATCH RAS SIM), feet
 RAS_Filepath = "FILE PATH HERE"; % filepath to the RASAERO II flight sim file (.csv)
+
+% advanced simulation controls
 invkstepsize = 0.0001; % increasing resolution exponentially increases calculation time
 invkMax = 8; % max 1/k value to calc to
 machGate = 1.01; % Don't change this unless you know what you're doing
