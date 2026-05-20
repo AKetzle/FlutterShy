@@ -201,11 +201,8 @@ function [Uf, flutterPoint] = TR496TR685(freq_alpha, freq_h, a_h, x_alpha, r_alp
     i = sqrt(-1);
     invkrange = [invkstepsize,invkMax];
     n = uint32(((invkrange(2) - invkrange(1)) ./ invkstepsize) + 1);
-    invk_set = linspace(invkrange(1),invkrange(2),n);
-    k_set = 1 ./ invk_set;
-    
-    k = k_set;
-    k_inv = invk_set;
+    k_inv = linspace(invkrange(1),invkrange(2),n);
+    k = 1 ./ k_inv;
     
     Ch_k = besselh(1,2,k) ./ (besselh(1,2,k) + (i .* besselh(0,2,k))); % Theodorsen Function; Less lines to compute than using the other bessel functions
     F = real(Ch_k);
