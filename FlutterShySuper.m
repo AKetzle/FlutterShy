@@ -10,7 +10,7 @@ clc, clear, close all;
 c = 0; % fin average chord, ft
 m = 0; % mass per unit span, slug / ft (span)
 x_bar = 0.5; % chord-normalized distance from c.g. to leading edge, per chord
-r_bar = 0; % semichord-normalized radius of gyration, % chord
+r_bar = 0; % semichord-normalized radius of gyration, % semichord
 freq_h = 0; % bending frequency, rad/s
 freq_alpha = 0; % torsion frequency, rad/s
 a_h = 0.5; % chord-normalized distance from elastic axis to leading edge, per chord
