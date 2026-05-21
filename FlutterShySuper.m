@@ -253,8 +253,8 @@ function [Uf, flutterPoint] = TR496TR685(freq_alpha, freq_h, a_h, x_alpha, r_alp
     
     solutionmatrix = [k; k_inv; X_R1; X_R2; X_I1; rt_X_R1; rt_X_R2; rt_X_I1; rt_X_I2];
     
-    XRatio1 = (abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(8,:))) .* (~isnan(rt_X_I1))) + (abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(9,:))) .* (isnan(rt_X_I1)));
-    XRatio2 = (abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(8,:))) .* (~isnan(rt_X_I1))) + (abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(9,:))) .* (isnan(rt_X_I1)));
+    XRatio1 = (abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(8,:))) .* (~isnan(rt_X_I1))) + (abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(9,:))) .* (isnan(rt_X_I2)));
+    XRatio2 = (abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(8,:))) .* (~isnan(rt_X_I1))) + (abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(9,:))) .* (isnan(rt_X_I2)));
     
     % if (~isnan(rt_X_I1)) % change this to an inline math eq
     %     XRatio1 = abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(8,:)));
