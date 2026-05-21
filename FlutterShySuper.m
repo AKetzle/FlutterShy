@@ -38,7 +38,7 @@ apoTime = RAS_Time(apoidx);
 RAS_Mach = RAS_DATA(1:apoidx,4);
 RAS_Vel = RAS_DATA(1:apoidx,18);
 % Note to self: Just use atmos.m, not the calibrated one, it's closer to what RAS is saying
-[rho,~,T,a,~] = atmos(RAS_Alt + site_altitude); % get the atmospheric properties at each RAS time step
+[rho,~,~,a,~] = atmos(RAS_Alt + site_altitude); % get the atmospheric properties at each RAS time step
 mu = m ./ (pi() .* rho .* b.^2); % mass ratio parameter
 q = 0.5 .* rho .* RAS_Vel.^2;
 
@@ -52,6 +52,11 @@ for i = 1:iters
     V_f_sub(i) = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu(i), invkstepsize, invkMax, g_h, g_alpha);
     V_f_sub(i) = V_f_sub(i) .*(RAS_Mach(i)<=machGate);
 end
+
+% V_f_sub = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkstepsize, invkMax, g_h, g_alpha).*(RAS_Mach<=machGate);
+
+
+
 M_f_sub1 = V_f_sub ./ a;
 % note: change 1/k correction to inline math eq for accuracy's sake
 %M_f_sub = sqrt(M_f_sub1.^2 .* (sqrt(1 - (M_f_sub1.^4 ./ 4)) - (M_f_sub1.^2 ./ 2))); % subsonic vel calc from tr685
@@ -177,7 +182,7 @@ fontsize(16,"points");
 
 %% Helper Functions
 
-function [Uf, flutterPoint] = TR496TR685(freq_alpha, freq_h, a_h, x_alpha, r_alpha, b, mu, invkstepsize, invkMax, g_h, g_alpha)
+function [Uf] = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkstepsize, invkMax, g_h, g_alpha)
     %{
     Calculates flutter velocity based on the sqrt(X) vs 1/k method.
     Originally found in NACA TR496: https://ntrs.nasa.gov/citations/19930090935
@@ -202,8 +207,8 @@ function [Uf, flutterPoint] = TR496TR685(freq_alpha, freq_h, a_h, x_alpha, r_alp
     i = sqrt(-1);
     invkrange = [invkstepsize,invkMax];
     n = uint32(((invkrange(2) - invkrange(1)) ./ invkstepsize) + 1);
-    k_inv = linspace(invkrange(1),invkrange(2),n);
-    k = 1 ./ k_inv;
+    invk = linspace(invkrange(1),invkrange(2),n);
+    k = 1 ./ invk;
     
     Ch_k = besselh(1,2,k) ./ (besselh(1,2,k) + (i .* besselh(0,2,k))); % Theodorsen Function; Less lines to compute than using the other bessel functions
     F = real(Ch_k);
@@ -211,31 +216,39 @@ function [Uf, flutterPoint] = TR496TR685(freq_alpha, freq_h, a_h, x_alpha, r_alp
     
     A_R = -(mu + 1) - (2 .* G ./ k);
     A_I = 2 .* F ./ k;
-    B_R = -((mu .* x_alpha) - a_h) + (2 .* F ./ k.^2) - ((0.5 - a_h) .* 2 .* G ./ k);
+    B_R = -((mu .* x_bar) - a_h) + (2 .* F ./ k.^2) - ((0.5 - a_h) .* 2 .* G ./ k);
     B_I = (1 ./ k) .* (1 + (2 .* G ./ k) + ((0.5 - a_h) .* 2 .* F));
-    D_R = -((mu .* x_alpha) - a_h) + ((0.5 + a_h) .* 2 .* G ./ k);
+    D_R = -((mu .* x_bar) - a_h) + ((0.5 + a_h) .* 2 .* G ./ k);
     D_I = -(0.5 + a_h) .* 2 .* F ./ k;
-    E_R = -((mu .* r_alpha.^2) + a_h.^2 + 0.125) + ((0.25 - a_h.^2) .* 2 .* G ./ k) - ((0.5 + a_h) .* 2 .* F ./ k.^2);
+    E_R = -((mu .* r_bar.^2) + a_h.^2 + 0.125) + ((0.25 - a_h.^2) .* 2 .* G ./ k) - ((0.5 + a_h) .* 2 .* F ./ k.^2);
     E_I = (1 ./ k) .* ((0.5 - a_h) - ((0.5 + a_h) * 2 .* G ./ k) - ((0.25 - a_h.^2) * 2 .* F));
     
-    delta_R_A = (1 - (g_h * g_alpha)) * mu.^2 * r_alpha.^2 * freq_h.^2 ./ freq_alpha.^2;
-    delta_R_B = (mu .* freq_h.^2 ./ freq_alpha.^2 .* (E_R - (g_h .* E_I))) + (mu .* r_alpha.^2 .* (A_R - (g_alpha .* A_I)));
+    delta_R_A = (1 - (g_h * g_alpha)) * mu.^2 * r_bar.^2 * freq_h.^2 ./ freq_alpha.^2;
+    delta_R_B = (mu .* freq_h.^2 ./ freq_alpha.^2 .* (E_R - (g_h .* E_I))) + (mu .* r_bar.^2 .* (A_R - (g_alpha .* A_I)));
     delta_R_C = (A_R .* E_R) - (B_R .* D_R) - (A_I .* E_I) + (B_I .* D_I);
     
-    delta_I_A = (g_h + g_alpha) .* mu.^2 .* r_alpha.^2 .* freq_h.^2 ./ freq_alpha.^2;
-    delta_I_B = (mu .* freq_h.^2 ./ freq_alpha.^2 .* ((g_h .* E_R) + E_I)) + (mu .* r_alpha.^2 .* (A_I + (g_alpha .* A_R)));
+    delta_I_A = (g_h + g_alpha) .* mu.^2 .* r_bar.^2 .* freq_h.^2 ./ freq_alpha.^2;
+    delta_I_B = (mu .* freq_h.^2 ./ freq_alpha.^2 .* ((g_h .* E_R) + E_I)) + (mu .* r_bar.^2 .* (A_I + (g_alpha .* A_R)));
     delta_I_C = (A_I .* E_R) - (B_R .* D_I) + (A_R .* E_I) - (B_I .* D_R);
     
     X_R1 = (-delta_R_B - sqrt(delta_R_B.^2 - (4 .* delta_R_A .* delta_R_C))) ./ (2 .* delta_R_A);
     X_R2 = (-delta_R_B + sqrt(delta_R_B.^2 - (4 .* delta_R_A .* delta_R_C))) ./ (2 .* delta_R_A);
 
-    if(~delta_I_A == 0) % change this to an inline math eq when you figure out mu's deal
-        X_I1 = (-delta_I_B - sqrt(delta_I_B.^2 - (4 .* delta_I_A .* delta_I_C))) ./ (2 .* delta_I_A);
-        X_I2 = (-delta_I_B + sqrt(delta_I_B.^2 - (4 .* delta_I_A .* delta_I_C))) ./ (2 .* delta_I_A);
-    else
-        X_I1 = -delta_I_C ./ delta_I_B;
-        X_I2 = -delta_I_C ./ delta_I_B;
-    end
+    X_I11 = (((-delta_I_B - sqrt(delta_I_B.^2 - (4 .* delta_I_A .* delta_I_C))) ./ (2 .* delta_I_A)) .* (~delta_I_A == 0));
+    xnan = isnan(X_I11);
+    X_I11(xnan) = 0;
+    X_I12 = ((-delta_I_C ./ delta_I_B).*(delta_I_A == 0));
+    xnan = isnan(X_I12);
+    X_I12(xnan) = 0;
+    X_I1 = X_I11 + X_I12;
+
+    X_I21 = ((-delta_I_B + sqrt(delta_I_B.^2 - (4 .* delta_I_A .* delta_I_C))) ./ (2 .* delta_I_A)).*(~delta_I_A == 0);
+    xnan = isnan(X_I21);
+    X_I21(xnan) = 0;
+    X_I22 = (-delta_I_C ./ delta_I_B).*(delta_I_A == 0);
+    xnan = isnan(X_I22);
+    X_I22(xnan) = 0;
+    X_I2 = X_I21 + X_I22;
 
     iscomplex = (imag(X_R1) ~= 0);
     X_R1(iscomplex) = NaN;
@@ -251,30 +264,14 @@ function [Uf, flutterPoint] = TR496TR685(freq_alpha, freq_h, a_h, x_alpha, r_alp
     iscomplex = (imag(rt_X_I2) ~= 0);
     rt_X_I2(iscomplex) = NaN;
     
-    solutionmatrix = [k; k_inv; X_R1; X_R2; X_I1; rt_X_R1; rt_X_R2; rt_X_I1; rt_X_I2];
+    XRatio1 = (abs(1 - abs(rt_X_R1 ./ rt_X_I1)) .* (~isnan(rt_X_I1))) + (abs(1 - abs(rt_X_R1 ./ rt_X_I2)) .* (isnan(rt_X_I1)));
+    XRatio2 = (abs(1 - abs(rt_X_R2 ./ rt_X_I1)) .* (~isnan(rt_X_I1))) + (abs(1 - abs(rt_X_R2 ./ rt_X_I2)) .* (isnan(rt_X_I1)));
     
-    XRatio1 = (abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(8,:))) .* (~isnan(rt_X_I1))) + (abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(9,:))) .* (isnan(rt_X_I2)));
-    XRatio2 = (abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(8,:))) .* (~isnan(rt_X_I1))) + (abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(9,:))) .* (isnan(rt_X_I2)));
-    
-    % if (~isnan(rt_X_I1)) % change this to an inline math eq
-    %     XRatio1 = abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(8,:)));
-    %     XRatio2 = abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(8,:)));
-    % else
-    %     XRatio1 = abs(1 - abs(solutionmatrix(6,:) ./ solutionmatrix(9,:)));
-    %     XRatio2 = abs(1 - abs(solutionmatrix(7,:) ./ solutionmatrix(9,:)));
-    % end
-    
-    [~,idx1] = find(XRatio1 == min(XRatio1,[],"omitnan"));
-    [~,idx2] = find(XRatio2 == min(XRatio2,[],"omitnan"));
-    r1 = XRatio1(:,idx1);
-    r2 = XRatio2(:,idx2);
-    if(r1 < r2)
-        flutterPoint = solutionmatrix(:,idx1);
-        Uf = freq_alpha .* b .* flutterPoint(2) ./ flutterPoint(6);
-    else
-        flutterPoint = solutionmatrix(:,idx2);
-        Uf = freq_alpha .* b .* flutterPoint(2) ./ flutterPoint(7);
-    end
+    [~,idx1] = find(XRatio1 == min(XRatio1,[],2,"omitnan"));
+    [~,idx2] = find(XRatio2 == min(XRatio2,[],2,"omitnan"));
+    r1 = min(XRatio1,[],2,"omitnan");
+    r2 = min(XRatio2,[],2,"omitnan");
+    Uf = freq_alpha .* b .* (((invk(idx1).' ./ rt_X_R1(idx1)).*(r1 < r2)) + ((invk(idx2).' ./ rt_X_R2(idx2)).*(r2 < r1)));
 end
 
 function V_f_sup = kearnsSupersonic(mu, r_bar, RAS_Mach, x_bar, b, freq_h, freq_alpha, machGate)
