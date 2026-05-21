@@ -57,6 +57,7 @@ M_f_sub1 = V_f_sub ./ a;
 %M_f_sub = sqrt(M_f_sub1.^2 .* (sqrt(1 - (M_f_sub1.^4 ./ 4)) - (M_f_sub1.^2 ./ 2))); % subsonic vel calc from tr685
 %M_f_sub = sqrt(M_f_sub1.^2 .* (sqrt(4 + (M_f_sub1.^4)) - (M_f_sub1.^2))) ./ sqrt(2); % supersonic vel calc derived via matlab
 M_f_sub = (sqrt(M_f_sub1.^2 .* (sqrt(4 + (M_f_sub1.^4)) - (M_f_sub1.^2))) ./ sqrt(2) .* (M_f_sub1>=1)) + (sqrt(M_f_sub1.^2 .* (sqrt(1 - (M_f_sub1.^4 ./ 4)) - (M_f_sub1.^2 ./ 2))) .* (M_f_sub1<1));
+V_f_sub = M_f_sub .* a;
 M_f_sup = V_f_sup ./ a;
 V_f = V_f_sub + V_f_sup;
 M_f = M_f_sub + M_f_sup;
