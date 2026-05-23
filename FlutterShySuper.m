@@ -60,6 +60,7 @@ end
 
 M_f_sub1 = V_f_sub ./ a;
 % note: change 1/k correction to inline math eq for accuracy's sake
+% note: the supersonic correction may actually be hurting here. needs verification. possibly remove?
 %M_f_sub = sqrt(M_f_sub1.^2 .* (sqrt(1 - (M_f_sub1.^4 ./ 4)) - (M_f_sub1.^2 ./ 2))); % subsonic vel calc from tr685
 %M_f_sub = sqrt(M_f_sub1.^2 .* (sqrt(4 + (M_f_sub1.^4)) - (M_f_sub1.^2))) ./ sqrt(2); % supersonic vel calc derived via matlab
 M_f_sub = (sqrt(M_f_sub1.^2 .* (sqrt(4 + (M_f_sub1.^4)) - (M_f_sub1.^2))) ./ sqrt(2) .* (M_f_sub1>=1)) + (sqrt(M_f_sub1.^2 .* (sqrt(1 - (M_f_sub1.^4 ./ 4)) - (M_f_sub1.^2 ./ 2))) .* (M_f_sub1<1));
