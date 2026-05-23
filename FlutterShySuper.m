@@ -69,10 +69,10 @@ V_f = V_f_sub + V_f_sup;
 M_f = M_f_sub + M_f_sup;
 fs_flutter = (V_f ./ abs(RAS_Vel)) .* (RAS_Vel > 50);
 fs_flutter(fs_flutter == 0) = NaN;
-%% Plotting
-
 V_f2 = V_f .* (RAS_Vel > 50);
 V_f2(V_f2 == 0) = NaN;
+%% Plotting
+
 [fsmin, fsminidx] = min(fs_flutter); % minimum flutter f.s.
 minfs_fluttervel = V_f2(fsminidx); % flutter velocity at min f.s.
 minfs_rasvel = RAS_Vel(fsminidx); % RAS velocity at min f.s.
