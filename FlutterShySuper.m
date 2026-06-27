@@ -297,6 +297,17 @@ function V_f_sup = kearnsSupersonic(mu, r_bar, RAS_Mach, x_bar, b, freq_h, freq_
     V_f_sup = freq_alpha .* b .* sqrt(sqrt1 .* (sqrt2N ./ sqrt2D));
 end
 
+function [r_bar, J0] = calculateReducedRadius(fin)
+    t = fin.thickness;
+    c = fin.avgChord;
+    h = fin.span;
+    b = c./2;
+    % r_bar = sqrt(h * J0 / (b^2 * fin Volume))
+    if strcmp(fin.airfoil,'rectangular') % rectangular/flat cross-section
+        J0 = c .* t .* (c.^2 + t.^2) ./ 12; % polar moment of inertia
+        r_bar = sqrt((1 + (t ./ c).^2) ./ 3); % reduced radius of gyration
+    end
+end
 %% Todo list
 %{ 
 Accept multiple unit systems
