@@ -329,7 +329,7 @@ end
 %% Todo list
 %{ 
 Accept multiple unit systems
-fix subsonic to use vector mu so that for loop can go away
+fix subsonic to use vector mu so that for loop can go away - this has evolved
 ensure you can have multiple input vectors so this can be used in optimization stuff
 tear things apart from the file so you can use this without a ras sim and just a set of conditions
 %}
