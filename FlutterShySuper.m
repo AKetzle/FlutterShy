@@ -297,15 +297,33 @@ function V_f_sup = kearnsSupersonic(mu, r_bar, RAS_Mach, x_bar, b, freq_h, freq_
     V_f_sup = freq_alpha .* b .* sqrt(sqrt1 .* (sqrt2N ./ sqrt2D));
 end
 
-function [r_bar, J0] = calculateReducedRadius(fin)
+function [fin] = calculateFinProperties(fin)
     t = fin.thickness;
-    c = fin.avgChord;
+    cr = fin.rootchord;
+    ct = fin.tipchord;
+    fin.c = (ct + cr) / 2; % fin avg. chord
     h = fin.span;
-    b = c./2;
+    fin.b = c./2; % fin avg. semichord
     % r_bar = sqrt(h * J0 / (b^2 * fin Volume))
     if strcmp(fin.airfoil,'rectangular') % rectangular/flat cross-section
-        J0 = c .* t .* (c.^2 + t.^2) ./ 12; % polar moment of inertia
-        r_bar = sqrt((1 + (t ./ c).^2) ./ 3); % reduced radius of gyration
+        fin.J0 = fin.c .* t .* (fin.c.^2 + t.^2) ./ 12; % polar moment of inertia - rectangular airfoil simplification
+        fin.r_bar = sqrt((1 + (t ./ fin.c).^2) ./ 3); % reduced radius of gyration
+    elseif strcmp(fin.airfoil,'hexagonal')
+        hc = fin.chamferHeight;
+        Achamf = t .* hc ./ 2;
+        xbarchamf = hc ./ 3;
+        Ixchamf = hc .* t.^3 ./ 48;
+        Iychamf = t .* hc.^3 ./ 36;
+        rectbase = fin.c - (2 .* hc); % avg rectangle section width
+        %Arect = rectbase .* t;
+        Ixrect = rectbase .* t.^3 ./ 12;
+        Iyrect = t .* rectbase.^3 ./ 12;
+        d = xbarchamf + (rectbase ./ 2);
+        Ix = Ixrect + (2 .* (Ixchamf + (Achamf .* d)));
+        Iy = Iyrect + (2 .* Iychamf);
+        fin.volume = (2 .* Achamf .* h) + (((cr - (2 .* hc)) + (ct - (2 .* hc))) .* h .* t ./ 2);
+        fin.J0 = Ix + Iy;
+        fin.r_bar = sqrt(h .* fin.J0 ./ (fin.b.^2 .* fin.volume));
     end
 end
 %% Todo list
