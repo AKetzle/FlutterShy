@@ -304,7 +304,7 @@ function [fin] = calculateFinProperties(fin)
     fin.c = (ct + cr) / 2; % fin avg. chord
     h = fin.span;
     fin.b = c./2; % fin avg. semichord
-    % r_bar = sqrt(h * J0 / (b^2 * fin Volume))
+    % REFERENCE r_bar = sqrt(h * J0 / (b^2 * fin Volume))
     if strcmp(fin.airfoil,'rectangular') % rectangular/flat cross-section
         fin.J0 = fin.c .* t .* (fin.c.^2 + t.^2) ./ 12; % polar moment of inertia - rectangular airfoil simplification
         fin.r_bar = sqrt((1 + (t ./ fin.c).^2) ./ 3); % reduced radius of gyration
