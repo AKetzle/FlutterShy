@@ -29,17 +29,8 @@ machGate = 1.01; % Don't change this unless you know what you're doing
 %% Calculation
 
 b = c / 2; % average semi-chord, ft
-% RAS_DATA = readmatrix(RAS_Filepath,"NumHeaderLines",1);
-% RAS_Alt1 = RAS_DATA(:,23);
-% [apogee, apoidx] = max(RAS_Alt1);
-% fprintf("Maximum RASAero II Altitude: %g ft\n",apogee);
-% RAS_Alt = RAS_DATA(1:apoidx,23);
-% RAS_Time = RAS_DATA(1:apoidx,1);
-% apoTime = RAS_Time(apoidx);
-% RAS_Mach = RAS_DATA(1:apoidx,4);
-% RAS_Vel = RAS_DATA(1:apoidx,18);
-RasData = readRASData(RAS_Filepath);
 
+RasData = readRASData(RAS_Filepath);
 Altitude = RasData.Altitude;
 Velocity = RasData.Velocity;
 Mach = RasData.Mach;
@@ -348,8 +339,9 @@ function RasData = readRASData(filepath)
 end
 %% Todo list
 %{ 
-Accept multiple unit systems
-fix subsonic to use vector mu so that for loop can go away - this has evolved
-ensure you can have multiple input vectors so this can be used in optimization stuff
-tear things apart from the file so you can use this without a ras sim and just a set of conditions - almost there
+NOT STARTED - Accept multiple unit systems
+STARTED - fix subsonic to use vector mu so that for loop can go away - NOTE: this has evolved
+NOT STARTED - ensure you can have multiple input vectors so this can be used in optimization stuff
+STARTED - tear things apart from the file so you can use this without a ras sim and just a set of conditions - NOTE: almost there
+
 %}
