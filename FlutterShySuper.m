@@ -29,29 +29,37 @@ machGate = 1.01; % Don't change this unless you know what you're doing
 %% Calculation
 
 b = c / 2; % average semi-chord, ft
-RAS_DATA = readmatrix(RAS_Filepath,"NumHeaderLines",1);
-RAS_Alt1 = RAS_DATA(:,23);
-[apogee, apoidx] = max(RAS_Alt1);
-fprintf("Maximum RASAero II Altitude: %g ft\n",apogee);
-RAS_Alt = RAS_DATA(1:apoidx,23);
-RAS_Time = RAS_DATA(1:apoidx,1);
-apoTime = RAS_Time(apoidx);
-RAS_Mach = RAS_DATA(1:apoidx,4);
-RAS_Vel = RAS_DATA(1:apoidx,18);
+% RAS_DATA = readmatrix(RAS_Filepath,"NumHeaderLines",1);
+% RAS_Alt1 = RAS_DATA(:,23);
+% [apogee, apoidx] = max(RAS_Alt1);
+% fprintf("Maximum RASAero II Altitude: %g ft\n",apogee);
+% RAS_Alt = RAS_DATA(1:apoidx,23);
+% RAS_Time = RAS_DATA(1:apoidx,1);
+% apoTime = RAS_Time(apoidx);
+% RAS_Mach = RAS_DATA(1:apoidx,4);
+% RAS_Vel = RAS_DATA(1:apoidx,18);
+RasData = readRASData(RAS_Filepath);
+
+Altitude = RasData.Altitude;
+Velocity = RasData.Velocity;
+Mach = RasData.Mach;
+Time = RasData.Time;
+ApogeeTime = RasData.ApogeeTime;
+
 % Note to self: Just use atmos.m, not the calibrated one, it's closer to what RAS is saying
-[rho,~,~,a,~] = atmos(RAS_Alt + site_altitude); % get the atmospheric properties at each RAS time step
+[rho,~,~,a,~] = atmos(Altitude + site_altitude); % get the atmospheric properties at each RAS time step
 mu = m ./ (pi() .* rho .* b.^2); % mass ratio parameter
-q = 0.5 .* rho .* RAS_Vel.^2;
+q = 0.5 .* rho .* Velocity.^2;
 
 % Supersonic
-V_f_sup = kearnsSupersonic(mu, r_bar, RAS_Mach, x_bar, b, freq_h, freq_alpha, machGate);
+V_f_sup = kearnsSupersonic(mu, r_bar, Mach, x_bar, b, freq_h, freq_alpha, machGate);
 
 % Subsonic
 V_f_sub = zeros(size(mu));
 iters = size(mu,1);
 for i = 1:iters
     V_f_sub(i) = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu(i), invkstepsize, invkMax, g_h, g_alpha);
-    V_f_sub(i) = V_f_sub(i) .*(RAS_Mach(i)<=machGate);
+    V_f_sub(i) = V_f_sub(i) .*(Mach(i)<=machGate);
 end
 
 % V_f_sub = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkstepsize, invkMax, g_h, g_alpha).*(RAS_Mach<=machGate);
@@ -68,23 +76,23 @@ V_f_sub = M_f_sub .* a;
 M_f_sup = V_f_sup ./ a;
 V_f = V_f_sub + V_f_sup;
 M_f = M_f_sub + M_f_sup;
-fs_flutter = (V_f ./ abs(RAS_Vel)) .* (RAS_Vel > 50);
+fs_flutter = (V_f ./ abs(Velocity)) .* (Velocity > 50);
 fs_flutter(fs_flutter == 0) = NaN;
-V_f2 = V_f .* (RAS_Vel > 50);
+V_f2 = V_f .* (Velocity > 50);
 V_f2(V_f2 == 0) = NaN;
 %% Plotting
 
 [fsmin, fsminidx] = min(fs_flutter); % minimum flutter f.s.
 minfs_fluttervel = V_f2(fsminidx); % flutter velocity at min f.s.
-minfs_rasvel = RAS_Vel(fsminidx); % RAS velocity at min f.s.
-minfs_time = RAS_Time(fsminidx); % time of min flutter f.s.
+minfs_rasvel = Velocity(fsminidx); % RAS velocity at min f.s.
+minfs_time = Time(fsminidx); % time of min flutter f.s.
 
 [vfmin, vfminidx] = min(V_f2); % minimum flutter velocity
-minfluttervel_rasvel = RAS_Vel(vfminidx); % ras velocity at minimum flutter velocity
+minfluttervel_rasvel = Velocity(vfminidx); % ras velocity at minimum flutter velocity
 minfluttervel_fs = fs_flutter(vfminidx); % f.s. of min flutter velocity
-minfluttervel_time = RAS_Time(vfminidx); % time of minimum flutter velocity
+minfluttervel_time = Time(vfminidx); % time of minimum flutter velocity
 
-[rasvelmax, maxrasvelidx] = max(RAS_Vel); % maximum rasaero velocity
+[rasvelmax, maxrasvelidx] = max(Velocity); % maximum rasaero velocity
 maxrasvel_fluttervel = V_f2(maxrasvelidx); % flutter vel at max ras velocity
 maxrasvel_fs = fs_flutter(maxrasvelidx); % flutter f.s. at amx ras velocity
 
@@ -106,10 +114,10 @@ fprintf("Minimum Flutter F.S.:                     %g\n" + ...
 
 
 figure(Name="Flutter Factor of Safety vs. Time");
-plot(RAS_Time,fs_flutter,LineWidth=1.5);
+plot(Time,fs_flutter,LineWidth=1.5);
 yline(1.5,LineWidth=1.5);
 yline(1,LineWidth=1.5);
-xlim([0,apoTime])
+xlim([0,ApogeeTime])
 ylim([0,inf])
 xlabel("Time (s)");
 title("Flutter Factor of Safety vs. Time")
@@ -118,14 +126,14 @@ legend("Velocity Ratio");
 fontsize(16,"points");
 
 figure(Name="Flutter Velocity vs. Sim Velocity");
-plot(RAS_Vel,V_f);
+plot(Velocity,V_f);
 xlabel("Simulation Velocity (ft/s)");
 ylabel("Flutter Velocity (ft/s)");
 title("Flutter Velocity vs. Sim Velocity");
 fontsize(16,"points");
 
 figure(Name="Flutter Mach vs. Sim Mach");
-plot(RAS_Mach,M_f);
+plot(Mach,M_f);
 xline(1);
 xline(0.8);
 xline(1.2);
@@ -135,13 +143,13 @@ title("Flutter Mach vs. Sim Mach");
 fontsize(16,"points");
 
 figure(Name="Mach Numbers vs. Time");
-plot(RAS_Time,RAS_Mach,RAS_Time,M_f)
+plot(Time,Mach,Time,M_f)
 yline(1.2)
 legend("Sim Mach Number","Flutter Mach Number");
 xlabel("Time (s)");
 ylabel("Mach Number");
 title("Mach Numbers vs. Time");
-xlim([0,apoTime])
+xlim([0,ApogeeTime])
 fontsize(16,"points");
 
 figure(Name="Flutter Factor of Safety vs. Dynamic Pressure");
@@ -153,7 +161,7 @@ title("Flutter Factor of Safety vs. Dynamic Pressure");
 fontsize(16,"points");
 
 figure(Name="Flutter Factor of Safety vs. Altitude");
-plot(RAS_Alt,fs_flutter);
+plot(Altitude,fs_flutter);
 ylim([0,inf])
 yline(1.5)
 yline(1)
@@ -163,7 +171,7 @@ title("Flutter Factor of Safety vs. Altitude");
 fontsize(16,"points");
 
 figure(Name="Flutter FS vs. Sim Mach");
-plot(RAS_Mach,fs_flutter);
+plot(Mach,fs_flutter);
 xline(1);
 xline(0.8);
 xline(1.2);
@@ -173,8 +181,8 @@ title("Flutter FS vs. Sim Mach");
 fontsize(16,"points");
 
 figure(Name="Flutter Velocity vs. Time");
-plot(RAS_Time,V_f,LineWidth=1.5);
-xlim([0,apoTime])
+plot(Time,V_f,LineWidth=1.5);
+xlim([0,ApogeeTime])
 ylim([0,inf])
 xlabel("Time (s)");
 title("Flutter Velocity vs. Time")
@@ -290,14 +298,14 @@ function [Uf] = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkste
     Uf = freq_alpha .* b .* (((invk(idx1).' ./ rt_X_R1(idx1)).*(r1 < r2)) + ((invk(idx2).' ./ rt_X_R2(idx2)).*(r2 < r1)));
 end
 
-function V_f_sup = kearnsSupersonic(mu, r_bar, RAS_Mach, x_bar, b, freq_h, freq_alpha, machGate)
-    sqrt1 = mu .* r_bar.^2 .* sqrt((RAS_Mach>machGate).*(RAS_Mach.^2 - 1)) ./ (x_bar .* b);
+function V_f_sup = kearnsSupersonic(mu, r_bar, mach, x_bar, b, freq_h, freq_alpha, machGate)
+    sqrt1 = mu .* r_bar.^2 .* sqrt((mach>machGate).*(mach.^2 - 1)) ./ (x_bar .* b);
     sqrt2N = (1 - (freq_h ./ freq_alpha).^2).^2 + (4 .* (x_bar ./ r_bar).^2 .* (freq_h ./ freq_alpha).^2);
     sqrt2D = 2 * (1 + (freq_h ./ freq_alpha).^2);
     V_f_sup = freq_alpha .* b .* sqrt(sqrt1 .* (sqrt2N ./ sqrt2D));
 end
 
-function [fin] = calculateFinProperties(fin)
+function fin = calculateFinProperties(fin)
     t = fin.thickness;
     cr = fin.rootchord;
     ct = fin.tipchord;
@@ -326,10 +334,22 @@ function [fin] = calculateFinProperties(fin)
         fin.r_bar = sqrt(h .* fin.J0 ./ (fin.b.^2 .* fin.volume));
     end
 end
+
+function RasData = readRASData(filepath)
+    dataMatrix = readmatrix(filepath,"NumHeaderLines",1);
+    rasAlt1 = dataMatrix(:,23);
+    [RasData.Apogee,apoindex] = max(rasAlt1);
+    fprintf("Maximum RASAero II Altitude: %g ft\n",RasData.Apogee);
+    RasData.Altitude = dataMatrix(1:apoindex,23);
+    RasData.Time = dataMatrix(1:apoindex,1);
+    RasData.ApogeeTime = RasData.Time(apoindex);
+    RasData.Mach = dataMatrix(1:apoindex,4);
+    RasData.Velocity = dataMatrix(1:apoindex,18);
+end
 %% Todo list
 %{ 
 Accept multiple unit systems
 fix subsonic to use vector mu so that for loop can go away - this has evolved
 ensure you can have multiple input vectors so this can be used in optimization stuff
-tear things apart from the file so you can use this without a ras sim and just a set of conditions
+tear things apart from the file so you can use this without a ras sim and just a set of conditions - almost there
 %}
