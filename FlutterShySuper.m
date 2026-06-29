@@ -1,4 +1,4 @@
-%% FlutteryShy Super (Supersonic Flutter Prediction)
+%% FlutterShy Super (Supersonic Flutter Prediction)
 % Alexander Ketzle, Written for the Mississippi State University Space Cowboys and the benefit of the rocketry community
 % First written April 2026
 % Last updated: May 22 2026
