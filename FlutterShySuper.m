@@ -343,5 +343,7 @@ NOT STARTED - Accept multiple unit systems
 STARTED - fix subsonic to use vector mu so that for loop can go away - NOTE: this has evolved
 NOT STARTED - ensure you can have multiple input vectors so this can be used in optimization stuff
 STARTED - tear things apart from the file so you can use this without a ras sim and just a set of conditions - NOTE: almost there
-
+STARTED - allow input of fin parameters to calculate 
+NOT STARTED - allow input of file for analysis parameters
+NOT STARTED - 3D plots? might be neat
 %}
