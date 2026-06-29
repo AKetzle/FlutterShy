@@ -7,7 +7,7 @@ clc, clear, close all;
 
 %% User Inputs
 
-inputFile = "C:\Users\seapo\Desktop\Fin Flutter\BanditFlutterShyInputs.txt"; % path to FlutterShy Input File
+inputFile = "FILE PATH HERE"; % path to FlutterShy Input File
 
 inputTable = cell2table(readcell(inputFile,"Delimiter",' = '));
 inputTable = rows2vars(inputTable,"VariableNamesSource",1);
