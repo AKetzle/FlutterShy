@@ -91,7 +91,7 @@ xlim([0,ApogeeTime])
 ylim([0,inf])
 xlabel("Time (s)");
 title("Flutter Factor of Safety vs. Time")
-ylabel("V_f / RAS Velocity");
+ylabel("V_f / Sim Velocity");
 legend("Velocity Ratio");
 fontsize(16,"points");
 
