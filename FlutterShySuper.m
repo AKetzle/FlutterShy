@@ -7,7 +7,7 @@ clc, clear, close all;
 
 %% User Inputs
 
-inputFile = "C:\Users\seapo\Desktop\Fin Flutter\TESTFluttershyInput.txt"; % path to FlutterShy Input File
+inputFile = "C:\Users\seapo\Desktop\Fin Flutter\BanditFlutterShyInputs.txt"; % path to FlutterShy Input File
 
 inputTable = cell2table(readcell(inputFile,"Delimiter",' = '));
 inputTable = rows2vars(inputTable,"VariableNamesSource",1);
@@ -332,6 +332,8 @@ function fin = calculateFinProperties(fin)
     fin.b = fin.c./2; % fin avg. semichord
     % REFERENCE r_bar = sqrt(h * J0 / (b^2 * fin Volume))
     if strcmp(fin.airfoil,'rectangular') % rectangular/flat cross-section
+        fin.planformArea = fin.c .* h;
+        fin.volume = fin.planformArea .* t;
         fin.J0 = fin.c .* t .* (fin.c.^2 + t.^2) ./ 12; % polar moment of inertia - rectangular airfoil simplification
         fin.r_bar = sqrt((1 + (t ./ fin.c).^2) ./ 3); % reduced radius of gyration
     elseif strcmp(fin.airfoil,'hexagonal')
@@ -348,6 +350,20 @@ function fin = calculateFinProperties(fin)
         Ix = Ixrect + (2 .* (Ixchamf + (Achamf .* d)));
         Iy = Iyrect + (2 .* Iychamf);
         fin.volume = (2 .* Achamf .* h) + (((cr - (2 .* hc)) + (ct - (2 .* hc))) .* h .* t ./ 2);
+        fin.J0 = Ix + Iy;
+        fin.r_bar = sqrt(h .* fin.J0 ./ (fin.b.^2 .* fin.volume));
+    elseif strcmp(fin.airfoil,'diamond')
+        hc = fin.b;
+        sweep = fin.sweep;
+        Achamf = t .* hc ./ 2;
+        xbarchamf = hc ./ 3;
+        Ixchamf = hc .* t.^3 ./ 48;
+        Iychamf = t .* hc.^3 ./ 36;
+        d = xbarchamf;
+        Ix = 2 .* (Ixchamf + (Achamf .* d));
+        Iy = 2 .* Iychamf;
+        fin.midspan = sqrt(h.^2 + (sweep + (ct ./ 2) - (cr ./ 2)).^2);
+        fin.volume = 0.25 .* t .* h .* (cr + ct);
         fin.J0 = Ix + Iy;
         fin.r_bar = sqrt(h .* fin.J0 ./ (fin.b.^2 .* fin.volume));
     end
