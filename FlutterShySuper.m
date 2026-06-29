@@ -7,86 +7,65 @@ clc, clear, close all;
 
 %% User Inputs
 
+inputFile = "C:\Users\seapo\Desktop\Fin Flutter\TESTFluttershyInput.txt"; % path to FlutterShy Input File
+
+inputTable = cell2table(readcell(inputFile,"Delimiter",' = '));
+inputTable = rows2vars(inputTable,"VariableNamesSource",1);
+
 % fin parameters
-c = 0; % fin average chord, ft
-m = 0; % mass per unit span, slug / ft (span)
-x_bar = 0.5; % chord-normalized distance from c.g. to leading edge, per chord
-r_bar = 0; % semichord-normalized radius of gyration, % semichord
-freq_h = 0; % bending frequency, rad/s
-freq_alpha = 0; % torsion frequency, rad/s
-a_h = 0.5; % chord-normalized distance from elastic axis to leading edge, per chord
-g_h = 0.000; % bending damping ratio
-g_alpha = 0.000; % torsion damping ratio
+c = cell2mat(inputTable.c); % fin average chord, ft
+m = cell2mat(inputTable.m); % mass per unit span, slug / ft (span)
+parameters.x_bar = cell2mat(inputTable.x_bar); % chord-normalized distance from c.g. to elastic axis, % chord
+parameters.r_bar = cell2mat(inputTable.r_bar); % chord-normalized radius of gyration, % chord
+parameters.freq_h = cell2mat(inputTable.freq_h); % bending frequency, rad/s
+parameters.freq_alpha = cell2mat(inputTable.freq_alpha); % torsion frequency, rad/s
+parameters.a_h = cell2mat(inputTable.a_h);
+parameters.g_h = cell2mat(inputTable.g_h);
+parameters.g_alpha = cell2mat(inputTable.g_alpha);
 
 % simulation parameters
-site_altitude = 0; % altitude of launch site above sea level (MUST MATCH RAS SIM), feet
-RAS_Filepath = "FILE PATH HERE"; % filepath to the RASAERO II flight sim file (.csv)
+site_altitude = cell2mat(inputTable.site_altitude); % altitude of launch site above sea level (MUST MATCH RAS SIM), feet
+RAS_Filepath = cell2mat(inputTable.RAS_Filepath); % filepath to the RASAERO II flight sim file (.csv)
 
 % advanced simulation controls
-invkstepsize = 0.0001; % increasing resolution exponentially increases calculation time
-invkMax = 8; % max 1/k value to calc to
-machGate = 1.01; % Don't change this unless you know what you're doing
+parameters.invkstepsize = cell2mat(inputTable.invkstepsize); % increasing resolution exponentially increases calculation time
+parameters.invkMax = cell2mat(inputTable.invkMax); % max 1/k value to calc to
+parameters.machGate = cell2mat(inputTable.machGate); % Don't change this unless you know what you're doing
 %% Calculation
 
-b = c / 2; % average semi-chord, ft
+parameters.b = c / 2; % average semi-chord, ft
 
 RasData = readRASData(RAS_Filepath);
 Altitude = RasData.Altitude;
-Velocity = RasData.Velocity;
-Mach = RasData.Mach;
+parameters.velocity = RasData.Velocity;
+parameters.mach = RasData.Mach;
 Time = RasData.Time;
 ApogeeTime = RasData.ApogeeTime;
 
 % Note to self: Just use atmos.m, not the calibrated one, it's closer to what RAS is saying
-[rho,~,~,a,~] = atmos(Altitude + site_altitude); % get the atmospheric properties at each RAS time step
-mu = m ./ (pi() .* rho .* b.^2); % mass ratio parameter
-q = 0.5 .* rho .* Velocity.^2;
+[parameters.rho,~,~,parameters.a,~] = atmos(Altitude + site_altitude); % get the atmospheric properties at each RAS time step
+parameters.mu = m ./ (pi() .* parameters.rho .* parameters.b.^2); % mass ratio parameter
 
-% Supersonic
-V_f_sup = kearnsSupersonic(mu, r_bar, Mach, x_bar, b, freq_h, freq_alpha, machGate);
+FlutterShyResults = FlutterShy(parameters);
 
-% Subsonic
-V_f_sub = zeros(size(mu));
-iters = size(mu,1);
-for i = 1:iters
-    V_f_sub(i) = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu(i), invkstepsize, invkMax, g_h, g_alpha);
-    V_f_sub(i) = V_f_sub(i) .*(Mach(i)<=machGate);
-end
+%% Report & Plotting
 
-% V_f_sub = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkstepsize, invkMax, g_h, g_alpha).*(RAS_Mach<=machGate);
-
-
-
-M_f_sub1 = V_f_sub ./ a;
-% note: change 1/k correction to inline math eq for accuracy's sake
-% note: the supersonic correction may actually be hurting here. needs verification. possibly remove?
-%M_f_sub = sqrt(M_f_sub1.^2 .* (sqrt(1 - (M_f_sub1.^4 ./ 4)) - (M_f_sub1.^2 ./ 2))); % subsonic vel calc from tr685
-%M_f_sub = sqrt(M_f_sub1.^2 .* (sqrt(4 + (M_f_sub1.^4)) - (M_f_sub1.^2))) ./ sqrt(2); % supersonic vel calc derived via matlab
-M_f_sub = (sqrt(M_f_sub1.^2 .* (sqrt(4 + (M_f_sub1.^4)) - (M_f_sub1.^2))) ./ sqrt(2) .* (M_f_sub1>=1)) + (sqrt(M_f_sub1.^2 .* (sqrt(1 - (M_f_sub1.^4 ./ 4)) - (M_f_sub1.^2 ./ 2))) .* (M_f_sub1<1));
-V_f_sub = M_f_sub .* a;
-M_f_sup = V_f_sup ./ a;
-V_f = V_f_sub + V_f_sup;
-M_f = M_f_sub + M_f_sup;
-fs_flutter = (V_f ./ abs(Velocity)) .* (Velocity > 50);
-fs_flutter(fs_flutter == 0) = NaN;
-V_f2 = V_f .* (Velocity > 50);
-V_f2(V_f2 == 0) = NaN;
-%% Plotting
-
-[fsmin, fsminidx] = min(fs_flutter); % minimum flutter f.s.
-minfs_fluttervel = V_f2(fsminidx); % flutter velocity at min f.s.
-minfs_rasvel = Velocity(fsminidx); % RAS velocity at min f.s.
+[fsmin, fsminidx] = min(FlutterShyResults.fs_flutter); % minimum flutter f.s.
+minfs_fluttervel = FlutterShyResults.V_f2(fsminidx); % flutter velocity at min f.s.
+minfs_rasvel = parameters.velocity(fsminidx); % RAS velocity at min f.s.
 minfs_time = Time(fsminidx); % time of min flutter f.s.
 
-[vfmin, vfminidx] = min(V_f2); % minimum flutter velocity
-minfluttervel_rasvel = Velocity(vfminidx); % ras velocity at minimum flutter velocity
-minfluttervel_fs = fs_flutter(vfminidx); % f.s. of min flutter velocity
+[vfmin, vfminidx] = min(FlutterShyResults.V_f2); % minimum flutter velocity
+minfluttervel_rasvel = parameters.velocity(vfminidx); % ras velocity at minimum flutter velocity
+minfluttervel_fs = FlutterShyResults.fs_flutter(vfminidx); % f.s. of min flutter velocity
 minfluttervel_time = Time(vfminidx); % time of minimum flutter velocity
 
-[rasvelmax, maxrasvelidx] = max(Velocity); % maximum rasaero velocity
-maxrasvel_fluttervel = V_f2(maxrasvelidx); % flutter vel at max ras velocity
-maxrasvel_fs = fs_flutter(maxrasvelidx); % flutter f.s. at amx ras velocity
+[rasvelmax, maxrasvelidx] = max(parameters.velocity); % maximum rasaero velocity
+maxrasvel_fluttervel = FlutterShyResults.V_f2(maxrasvelidx); % flutter vel at max ras velocity
+maxrasvel_fs = FlutterShyResults.fs_flutter(maxrasvelidx); % flutter f.s. at amx ras velocity
 
+
+q = 0.5 .* parameters.rho .* parameters.velocity.^2;
 % the report
 
 fprintf("Minimum Flutter F.S.:                     %g\n" + ...
@@ -105,7 +84,7 @@ fprintf("Minimum Flutter F.S.:                     %g\n" + ...
 
 
 figure(Name="Flutter Factor of Safety vs. Time");
-plot(Time,fs_flutter,LineWidth=1.5);
+plot(Time,FlutterShyResults.fs_flutter,LineWidth=1.5);
 yline(1.5,LineWidth=1.5);
 yline(1,LineWidth=1.5);
 xlim([0,ApogeeTime])
@@ -117,14 +96,14 @@ legend("Velocity Ratio");
 fontsize(16,"points");
 
 figure(Name="Flutter Velocity vs. Sim Velocity");
-plot(Velocity,V_f);
+plot(parameters.velocity,FlutterShyResults.V_f);
 xlabel("Simulation Velocity (ft/s)");
 ylabel("Flutter Velocity (ft/s)");
 title("Flutter Velocity vs. Sim Velocity");
 fontsize(16,"points");
 
 figure(Name="Flutter Mach vs. Sim Mach");
-plot(Mach,M_f);
+plot(parameters.mach,FlutterShyResults.M_f);
 xline(1);
 xline(0.8);
 xline(1.2);
@@ -134,7 +113,7 @@ title("Flutter Mach vs. Sim Mach");
 fontsize(16,"points");
 
 figure(Name="Mach Numbers vs. Time");
-plot(Time,Mach,Time,M_f)
+plot(Time,parameters.mach,Time,FlutterShyResults.M_f)
 yline(1.2)
 legend("Sim Mach Number","Flutter Mach Number");
 xlabel("Time (s)");
@@ -144,7 +123,7 @@ xlim([0,ApogeeTime])
 fontsize(16,"points");
 
 figure(Name="Flutter Factor of Safety vs. Dynamic Pressure");
-plot(q,fs_flutter)
+plot(q,FlutterShyResults.fs_flutter)
 ylim([0,inf])
 xlabel("Dynamic Pressure (lbf/ft^2)");
 ylabel("Flutter Factor of Safety");
@@ -152,7 +131,7 @@ title("Flutter Factor of Safety vs. Dynamic Pressure");
 fontsize(16,"points");
 
 figure(Name="Flutter Factor of Safety vs. Altitude");
-plot(Altitude,fs_flutter);
+plot(Altitude,FlutterShyResults.fs_flutter);
 ylim([0,inf])
 yline(1.5)
 yline(1)
@@ -162,7 +141,7 @@ title("Flutter Factor of Safety vs. Altitude");
 fontsize(16,"points");
 
 figure(Name="Flutter FS vs. Sim Mach");
-plot(Mach,fs_flutter);
+plot(parameters.mach,FlutterShyResults.fs_flutter);
 xline(1);
 xline(0.8);
 xline(1.2);
@@ -172,7 +151,7 @@ title("Flutter FS vs. Sim Mach");
 fontsize(16,"points");
 
 figure(Name="Flutter Velocity vs. Time");
-plot(Time,V_f,LineWidth=1.5);
+plot(Time,FlutterShyResults.V_f,LineWidth=1.5);
 xlim([0,ApogeeTime])
 ylim([0,inf])
 xlabel("Time (s)");
@@ -181,6 +160,54 @@ ylabel("V_f (ft/s)");
 fontsize(16,"points");
 
 %% Helper Functions
+
+function FlutterShyResults = FlutterShy(parameters)
+    mu = parameters.mu;
+    r_bar = parameters.r_bar;
+    Mach = parameters.mach;
+    x_bar = parameters.x_bar;
+    b = parameters.b;
+    freq_h = parameters.freq_h;
+    freq_alpha = parameters.freq_alpha;
+    g_h = parameters.g_h;
+    g_alpha = parameters.g_alpha;
+    machGate = parameters.machGate;
+    invkstepsize = parameters.invkstepsize;
+    invkMax = parameters.invkMax;
+    Velocity = parameters.velocity;
+    a_h = parameters.a_h;
+    a = parameters.a;
+
+    % Supersonic
+    V_f_sup = kearnsSupersonic(mu, r_bar, Mach, x_bar, b, freq_h, freq_alpha, machGate);
+    
+    % Subsonic
+    V_f_sub = zeros(size(mu));
+    iters = size(mu,1);
+    for i = 1:iters
+        V_f_sub(i) = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu(i), invkstepsize, invkMax, g_h, g_alpha);
+        V_f_sub(i) = V_f_sub(i) .*(Mach(i)<=machGate);
+    end
+    
+    % V_f_sub = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkstepsize, invkMax, g_h, g_alpha).*(RAS_Mach<=machGate);
+    
+    
+    
+    M_f_sub1 = V_f_sub ./ a;
+    % note: change 1/k correction to inline math eq for accuracy's sake
+    % note: the supersonic correction may actually be hurting here. needs verification. possibly remove?
+    %M_f_sub = sqrt(M_f_sub1.^2 .* (sqrt(1 - (M_f_sub1.^4 ./ 4)) - (M_f_sub1.^2 ./ 2))); % subsonic vel calc from tr685
+    %M_f_sub = sqrt(M_f_sub1.^2 .* (sqrt(4 + (M_f_sub1.^4)) - (M_f_sub1.^2))) ./ sqrt(2); % supersonic vel calc derived via matlab
+    M_f_sub = (sqrt(M_f_sub1.^2 .* (sqrt(4 + (M_f_sub1.^4)) - (M_f_sub1.^2))) ./ sqrt(2) .* (M_f_sub1>=1)) + (sqrt(M_f_sub1.^2 .* (sqrt(1 - (M_f_sub1.^4 ./ 4)) - (M_f_sub1.^2 ./ 2))) .* (M_f_sub1<1));
+    V_f_sub = M_f_sub .* a;
+    M_f_sup = V_f_sup ./ a;
+    FlutterShyResults.V_f = V_f_sub + V_f_sup;
+    FlutterShyResults.M_f = M_f_sub + M_f_sup;
+    FlutterShyResults.fs_flutter = (FlutterShyResults.V_f ./ abs(Velocity)) .* (Velocity > 50);
+    FlutterShyResults.fs_flutter(FlutterShyResults.fs_flutter == 0) = NaN;
+    FlutterShyResults.V_f2 = FlutterShyResults.V_f .* (Velocity > 50);
+    FlutterShyResults.V_f2(FlutterShyResults.V_f2 == 0) = NaN;
+end
 
 function [Uf] = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkstepsize, invkMax, g_h, g_alpha)
     %{
@@ -302,7 +329,7 @@ function fin = calculateFinProperties(fin)
     ct = fin.tipchord;
     fin.c = (ct + cr) / 2; % fin avg. chord
     h = fin.span;
-    fin.b = c./2; % fin avg. semichord
+    fin.b = fin.c./2; % fin avg. semichord
     % REFERENCE r_bar = sqrt(h * J0 / (b^2 * fin Volume))
     if strcmp(fin.airfoil,'rectangular') % rectangular/flat cross-section
         fin.J0 = fin.c .* t .* (fin.c.^2 + t.^2) ./ 12; % polar moment of inertia - rectangular airfoil simplification
@@ -343,7 +370,9 @@ NOT STARTED - Accept multiple unit systems
 STARTED - fix subsonic to use vector mu so that for loop can go away - NOTE: this has evolved
 NOT STARTED - ensure you can have multiple input vectors so this can be used in optimization stuff
 STARTED - tear things apart from the file so you can use this without a ras sim and just a set of conditions - NOTE: almost there
-STARTED - allow input of fin parameters to calculate 
-NOT STARTED - allow input of file for analysis parameters
+STARTED - allow input of fin physical parameters to calculate needed parameters
 NOT STARTED - 3D plots? might be neat
+NOT STARTED - Check/Ensure GNU Octave Compatibility
+
+COMPLETE - allow input of file for analysis parameters
 %}
