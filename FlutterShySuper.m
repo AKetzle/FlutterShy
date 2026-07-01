@@ -368,6 +368,7 @@ function fin = calculateFinProperties(fin)
         fin.J0 = Ix + Iy;
         fin.r_bar = sqrt(h .* fin.J0 ./ (fin.b.^2 .* fin.volume));
     end
+    fin.m = fin.volume .* fin.density / h;
 end
 
 function RasData = readRASData(filepath)
