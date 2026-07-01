@@ -180,7 +180,7 @@ function FlutterShyResults = FlutterShy(parameters)
 
     % Supersonic
     V_f_sup = kearnsSupersonic(mu, r_bar, Mach, x_bar, b, freq_h, freq_alpha, machGate);
-    
+
     % Subsonic
     V_f_sub = zeros(size(mu));
     iters = size(mu,1);
@@ -188,11 +188,11 @@ function FlutterShyResults = FlutterShy(parameters)
         V_f_sub(i) = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu(i), invkstepsize, invkMax, g_h, g_alpha);
         V_f_sub(i) = V_f_sub(i) .*(Mach(i)<=machGate);
     end
-    
+
     % V_f_sub = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkstepsize, invkMax, g_h, g_alpha).*(RAS_Mach<=machGate);
-    
-    
-    
+
+
+
     M_f_sub1 = V_f_sub ./ a;
     % note: change 1/k correction to inline math eq for accuracy's sake
     % note: the supersonic correction may actually be hurting here. needs verification. possibly remove?
@@ -241,7 +241,7 @@ function [Uf] = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkste
     Ch_k = besselh(1,2,k) ./ (besselh(1,2,k) + (i .* besselh(0,2,k))); % Theodorsen Function; Less lines to compute than using the other bessel functions
     F = real(Ch_k);
     G = imag(Ch_k);
-    
+
     % some repeated calculations done here
     freqratiosq = freq_h.^2 ./ freq_alpha.^2;
     musq = mu.^2;
@@ -258,17 +258,17 @@ function [Uf] = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkste
     D_I = -(0.5 + a_h) .* A_I;
     E_R = -((mu_rbarsq) + a_h.^2 + 0.125) + ((0.25 - a_h.^2) .* G2_k) - ((0.5 + a_h) .* A_I ./ k);
     E_I = (1 ./ k) .* ((0.5 - a_h) - ((0.5 + a_h) .* G2_k) - ((0.25 - a_h.^2) * 2 .* F));
-    
+
     % calculate the real components of the determinant
     delta_R_A = (1 - (g_h * g_alpha)) .* musq .* rbarsq .* freqratiosq;
     delta_R_B = (mu .* freqratiosq .* (E_R - (g_h .* E_I))) + (mu_rbarsq .* (A_R - (g_alpha .* A_I)));
     delta_R_C = (A_R .* E_R) - (B_R .* D_R) - (A_I .* E_I) + (B_I .* D_I);
-    
+
     % calculate the imaginary components of the determinant
     delta_I_A = (g_h + g_alpha) .* musq .* rbarsq .* freqratiosq;
     delta_I_B = (mu .* freqratiosq .* ((g_h .* E_R) + E_I)) + (mu_rbarsq .* (A_I + (g_alpha .* A_R)));
     delta_I_C = (A_I .* E_R) - (B_R .* D_I) + (A_R .* E_I) - (B_I .* D_R);
-    
+
     % calculate the real component roots
     realsqrt = sqrt(delta_R_B.^2 - (4 .* delta_R_A .* delta_R_C)); % note: maybe apply complex check here
     X_R1 = (-delta_R_B - realsqrt) ./ (2 .* delta_R_A);
@@ -304,7 +304,7 @@ function [Uf] = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkste
     rt_X_I2 = sqrt(X_I2);
     iscomplex = (imag(rt_X_I2) ~= 0);
     rt_X_I2(iscomplex) = NaN;
-    
+
     % calculate the intercepts of the real and imaginary components
     XRatio1 = (abs(1 - abs(rt_X_R1 ./ rt_X_I1)) .* (~isnan(rt_X_I1))) + (abs(1 - abs(rt_X_R1 ./ rt_X_I2)) .* (isnan(rt_X_I1)));
     XRatio2 = (abs(1 - abs(rt_X_R2 ./ rt_X_I1)) .* (~isnan(rt_X_I1))) + (abs(1 - abs(rt_X_R2 ./ rt_X_I2)) .* (isnan(rt_X_I1)));
@@ -383,7 +383,7 @@ function RasData = readRASData(filepath)
     RasData.Velocity = dataMatrix(1:apoindex,18);
 end
 %% Todo list
-%{ 
+%{
 NOT STARTED - Accept multiple unit systems
 STARTED - fix subsonic to use vector mu so that for loop can go away - NOTE: this has evolved
 NOT STARTED - ensure you can have multiple input vectors so this can be used in optimization stuff
