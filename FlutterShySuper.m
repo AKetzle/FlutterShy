@@ -28,9 +28,29 @@ site_altitude = cell2mat(inputTable.site_altitude); % altitude of launch site ab
 RAS_Filepath = cell2mat(inputTable.RAS_Filepath); % filepath to the RASAERO II flight sim file (.csv)
 
 % advanced simulation controls
-parameters.invkstepsize = cell2mat(inputTable.invkstepsize); % increasing resolution exponentially increases calculation time
-parameters.invkMax = cell2mat(inputTable.invkMax); % max 1/k value to calc to
-parameters.machGate = cell2mat(inputTable.machGate); % Don't change this unless you know what you're doing
+if (~ismember('invkstepsize',inputTable.Properties.VariableNames))
+    parameters.invkstepsize = 0.0001;
+else
+    parameters.invkstepsize = cell2mat(inputTable.invkstepsize); % increasing resolution exponentially increases calculation time
+end
+
+if (~ismember('invkMax',inputTable.Properties.VariableNames))
+    parameters.invkMax = 8;
+else
+    parameters.invkMax = cell2mat(inputTable.invkMax); % max 1/k value to calc to
+end
+
+if (~ismember('machGate',inputTable.Properties.VariableNames))
+    parameters.machGate = 1.01;
+else
+    parameters.machGate = cell2mat(inputTable.machGate); % Don't change this unless you know what you're doing
+end
+
+if (~ismember('subsonic_model',inputTable.Properties.VariableNames))
+    parameters.subsonicCorrection = 'none';
+else
+    parameters.subsonicCorrection = cell2mat(inputTable.subsonic_model);
+end
 %% Calculation
 
 parameters.b = c / 2; % average semi-chord, ft
