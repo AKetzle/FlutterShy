@@ -1,0 +1,11 @@
+c = 0.625
+m = 0.024513
+x_bar = 0.5
+r_bar = 0.60703
+freq_h = 1847.47019
+freq_alpha = 2936.66049
+a_h = 0.5
+g_h = 0.000
+g_alpha = 0.000
+site_altitude = 2936
+RAS_Filepath = "Bandit-Example.CSV"

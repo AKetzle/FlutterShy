@@ -7,7 +7,7 @@ clc, clear, close all;
 
 %% User Inputs
 
-inputFile = "FILE PATH HERE"; % path to FlutterShy Input File
+inputFile = "InputExample.txt"; % path to FlutterShy Input File
 
 inputTable = cell2table(readcell(inputFile,"Delimiter",' = '));
 inputTable = rows2vars(inputTable,"VariableNamesSource",1);
@@ -202,26 +202,40 @@ function FlutterShyResults = FlutterShy(parameters)
     V_f_sup = kearnsSupersonic(mu, r_bar, Mach, x_bar, b, freq_h, freq_alpha, machGate);
 
     % Subsonic
+    i = sqrt(-1);
+    invkrange = [invkstepsize,invkMax];
+    n = uint32(((invkrange(2) - invkrange(1)) ./ invkstepsize) + 1);
+    invk = linspace(invkrange(1),invkrange(2),n);
+    k = 1 ./ invk;
+    Ch_k = besselh(1,2,k) ./ (besselh(1,2,k) + (i .* besselh(0,2,k))); % Theodorsen Function; Less lines to compute than using the other bessel functions
+    F = real(Ch_k);
+    G = imag(Ch_k);
+    G2_k = 2 .* G ./ k;
+
     V_f_sub = zeros(size(mu));
     iters = size(mu,1);
-    for i = 1:iters
-        V_f_sub(i) = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu(i), invkstepsize, invkMax, g_h, g_alpha);
-        V_f_sub(i) = V_f_sub(i) .*(Mach(i)<=machGate);
+    for j = 1:iters
+        V_f_sub(j) = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu(j), F, G, g_h, g_alpha, k, G2_k,invk);
+        V_f_sub(j) = V_f_sub(j) .*(Mach(j)<=machGate);
     end
-
-    % V_f_sub = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkstepsize, invkMax, g_h, g_alpha).*(RAS_Mach<=machGate);
-
-
 
     M_f_sub1 = V_f_sub ./ a;
     % note: change 1/k correction to inline math eq for accuracy's sake
     % note: the supersonic correction may actually be hurting here. needs verification. possibly remove?
-    %M_f_sub = sqrt(M_f_sub1.^2 .* (sqrt(1 - (M_f_sub1.^4 ./ 4)) - (M_f_sub1.^2 ./ 2))); % subsonic vel calc from tr685
-    %M_f_sub = sqrt(M_f_sub1.^2 .* (sqrt(4 + (M_f_sub1.^4)) - (M_f_sub1.^2))) ./ sqrt(2); % supersonic vel calc derived via matlab
-    M_f_sub = (sqrt(M_f_sub1.^2 .* (sqrt(4 + (M_f_sub1.^4)) - (M_f_sub1.^2))) ./ sqrt(2) .* (M_f_sub1>=1)) + (sqrt(M_f_sub1.^2 .* (sqrt(1 - (M_f_sub1.^4 ./ 4)) - (M_f_sub1.^2 ./ 2))) .* (M_f_sub1<1));
-    %M_f_sub = M_f_sub1;
+    if strcmp(parameters.subsonicCorrection,'none')
+        M_f_sub = M_f_sub1;
+    elseif strcmp(parameters.subsonicCorrection,'tr685')
+        M_f_sub = sqrt(M_f_sub1.^2 .* (sqrt(1 - (M_f_sub1.^4 ./ 4)) - (M_f_sub1.^2 ./ 2))); % subsonic vel calc from tr685
+    elseif strcmp(parameters.subsonicCorrection,'mat1')
+        M_f_sub = sqrt(M_f_sub1.^2 .* (sqrt(4 + (M_f_sub1.^4)) - (M_f_sub1.^2))) ./ sqrt(2); % first supersonic vel calc derived via matlab
+    elseif strcmp(parameters.subsonicCorrection,'mat2')
+        M_f_sub = (sqrt(M_f_sub1.^2 .* (sqrt(4 + (M_f_sub1.^4)) - (M_f_sub1.^2))) ./ sqrt(2) .* (M_f_sub1>=1)) + (sqrt(M_f_sub1.^2 .* (sqrt(1 - (M_f_sub1.^4 ./ 4)) - (M_f_sub1.^2 ./ 2))) .* (M_f_sub1<1)); % second supersonic vel calc derived via matlab
+    elseif strcmp(parameters.subsonicCorrection,'kearns')
+        M_f_sub = kearnsSupersonic(mu, r_bar, M_f_sub1, x_bar, b, freq_h, freq_alpha, machGate) ./ a;
+    end
     V_f_sub = M_f_sub .* a;
     M_f_sup = V_f_sup ./ a;
+    FlutterShyResults.M_f_sub = M_f_sub;
     FlutterShyResults.V_f = V_f_sub + V_f_sup;
     FlutterShyResults.M_f = M_f_sub + M_f_sup;
     FlutterShyResults.fs_flutter = (FlutterShyResults.V_f ./ abs(Velocity)) .* (Velocity > 50);
@@ -230,7 +244,7 @@ function FlutterShyResults = FlutterShy(parameters)
     FlutterShyResults.V_f2(FlutterShyResults.V_f2 == 0) = NaN;
 end
 
-function [Uf] = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkstepsize, invkMax, g_h, g_alpha)
+function [Uf] = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, F, G, g_h, g_alpha,k, G2_k,invk)
     %{
     Calculates flutter velocity based on the sqrt(X) vs 1/k method.
     Originally found in NACA TR496: https://ntrs.nasa.gov/citations/19930090935
@@ -253,21 +267,12 @@ function [Uf] = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, invkste
     invkMax - maximum value of 1/k to calculate to, unitless, typ 6-14, adjust higher if the parabola is not closed
     %}
     % set up constants
-    i = sqrt(-1);
-    invkrange = [invkstepsize,invkMax];
-    n = uint32(((invkrange(2) - invkrange(1)) ./ invkstepsize) + 1);
-    invk = linspace(invkrange(1),invkrange(2),n);
-    k = 1 ./ invk;
-    Ch_k = besselh(1,2,k) ./ (besselh(1,2,k) + (i .* besselh(0,2,k))); % Theodorsen Function; Less lines to compute than using the other bessel functions
-    F = real(Ch_k);
-    G = imag(Ch_k);
 
     % some repeated calculations done here
     freqratiosq = freq_h.^2 ./ freq_alpha.^2;
     musq = mu.^2;
     rbarsq = r_bar.^2;
     mu_rbarsq = mu .* rbarsq;
-    G2_k = 2 .* G ./ k;
 
     % calculate the determinant elements
     A_R = -(mu + 1) - (G2_k);
@@ -352,7 +357,6 @@ function fin = calculateFinProperties(fin)
     h = fin.span;
     fin.b = fin.c./2; % fin avg. semichord
     sweep = fin.sweep;
-    % REFERENCE r_bar = sqrt(h * J0 / (b^2 * fin Volume))
     if strcmp(fin.airfoil,'rectangular') % rectangular/flat cross-section
         fin.planformArea = fin.c .* h;
         fin.volume = fin.planformArea .* t;
@@ -365,7 +369,6 @@ function fin = calculateFinProperties(fin)
         Ixchamf = hc .* t.^3 ./ 48;
         Iychamf = t .* hc.^3 ./ 36;
         rectbase = fin.c - (2 .* hc); % avg rectangle section width
-        %Arect = rectbase .* t;
         Ixrect = rectbase .* t.^3 ./ 12;
         Iyrect = t .* rectbase.^3 ./ 12;
         d = xbarchamf + (rectbase ./ 2);
@@ -413,10 +416,10 @@ NOT STARTED - Accept multiple unit systems
 STARTED - fix subsonic to use vector mu so that for loop can go away - NOTE: this has evolved
 NOT STARTED - ensure you can have multiple input vectors so this can be used in optimization stuff
 STARTED - tear things apart from the file so you can use this without a ras sim and just a set of conditions - NOTE: almost there
-STARTED - allow input of fin physical parameters to calculate needed parameters
+STARTED - allow input of fin physical parameters to calculate needed parameters - only thing keeping this from complete is natural frequencies
 NOT STARTED - 3D plots? might be neat
-NOT STARTED - Check/Ensure GNU Octave Compatibility
-NOT STARTED - Add toggle between subsonic compressibility corrections for user choice
+STARTED - Check/Ensure GNU Octave Compatibility - GNU Octave doesn't implement readcell().
 
+COMPLETE - Add toggle between subsonic compressibility corrections for user choice
 COMPLETE - allow input of file for analysis parameters
 %}
