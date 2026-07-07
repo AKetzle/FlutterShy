@@ -331,6 +331,7 @@ function fin = calculateFinProperties(fin)
     fin.c = (ct + cr) / 2; % fin avg. chord
     h = fin.span;
     fin.b = fin.c./2; % fin avg. semichord
+    sweep = fin.sweep;
     % REFERENCE r_bar = sqrt(h * J0 / (b^2 * fin Volume))
     if strcmp(fin.airfoil,'rectangular') % rectangular/flat cross-section
         fin.planformArea = fin.c .* h;
@@ -355,7 +356,6 @@ function fin = calculateFinProperties(fin)
         fin.r_bar = sqrt(h .* fin.J0 ./ (fin.b.^2 .* fin.volume));
     elseif strcmp(fin.airfoil,'diamond')
         hc = fin.b;
-        sweep = fin.sweep;
         Achamf = t .* hc ./ 2;
         xbarchamf = hc ./ 3;
         Ixchamf = hc .* t.^3 ./ 48;
@@ -367,6 +367,11 @@ function fin = calculateFinProperties(fin)
         fin.volume = 0.25 .* t .* h .* (cr + ct);
         fin.J0 = Ix + Iy;
         fin.r_bar = sqrt(h .* fin.J0 ./ (fin.b.^2 .* fin.volume));
+    elseif strcmp(fin.airfoil,'biconvex')
+        fin.midspan = sqrt(h.^2 + (sweep + (ct ./ 2) - (cr ./ 2)).^2);
+        fin.volume = t .* h .* (cr + ct) ./ 3;
+        fin.J0 = fin.c .* t .* ((t.^2 ./ 6) + (fin.c.^2 ./ 12));
+        fin.r_bar = sqrt(h .* fin.J0 ./ (fin.b.^2 .* fin.volume .* fin.density));
     end
     fin.m = fin.volume .* fin.density / h;
 end
