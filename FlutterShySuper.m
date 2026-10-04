@@ -46,7 +46,7 @@ else
     parameters.machGate = cell2mat(inputTable.machGate); % Don't change this unless you know what you're doing
 end
 
-if (~ismember('subsonic_model',inputTable.Properties.VariableNames))
+if (~ismember('subsonicCorrection',inputTable.Properties.VariableNames))
     parameters.subsonicCorrection = 'none';
 else
     parameters.subsonicCorrection = cell2mat(inputTable.subsonic_model);
