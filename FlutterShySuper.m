@@ -215,7 +215,7 @@ function FlutterShyResults = FlutterShy(parameters)
     V_f_sub = zeros(size(mu));
     iters = size(mu,1);
     for j = 1:iters
-        V_f_sub(j) = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu(j), F, G, g_h, g_alpha, k, G2_k,invk);
+        V_f_sub(j) = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu(j), F, g_h, g_alpha, k, G2_k,invk);
         V_f_sub(j) = V_f_sub(j) .*(Mach(j)<=machGate);
     end
 

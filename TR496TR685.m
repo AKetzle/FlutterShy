@@ -1,4 +1,4 @@
-function [Uf] = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, F, G, g_h, g_alpha,k, G2_k,invk)
+function [Uf] = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, F, g_h, g_alpha,k, G2_k,invk)
     %{
     Calculates flutter velocity based on the sqrt(X) vs 1/k method.
     Originally found in NACA TR496: https://ntrs.nasa.gov/citations/19930090935
