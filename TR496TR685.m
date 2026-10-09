@@ -85,8 +85,15 @@ function [Uf] = TR496TR685(freq_alpha, freq_h, a_h, x_bar, r_bar, b, mu, F, g_h,
     rt_X_I2(iscomplex) = NaN;
 
     % calculate the intercepts of the real and imaginary components
-    XRatio1 = (abs(1 - abs(rt_X_R1 ./ rt_X_I1)) .* (~isnan(rt_X_I1))) + (abs(1 - abs(rt_X_R1 ./ rt_X_I2)) .* (isnan(rt_X_I1)));
-    XRatio2 = (abs(1 - abs(rt_X_R2 ./ rt_X_I1)) .* (~isnan(rt_X_I1))) + (abs(1 - abs(rt_X_R2 ./ rt_X_I2)) .* (isnan(rt_X_I1)));
+    %XRatio1 = (abs(1 - abs(rt_X_R1 ./ rt_X_I1)) .* (~isnan(rt_X_I1))) + (abs(1 - abs(rt_X_R1 ./ rt_X_I2)) .* (isnan(rt_X_I2)));
+    %XRatio2 = (abs(1 - abs(rt_X_R2 ./ rt_X_I1)) .* (~isnan(rt_X_I1))) + (abs(1 - abs(rt_X_R2 ./ rt_X_I2)) .* (isnan(rt_X_I2)));
+    if (~isnan(rt_X_I1))
+        XRatio1 = abs(1 - abs(rt_X_R1 ./ rt_X_I1));
+        XRatio2 = abs(1 - abs(rt_X_R2 ./ rt_X_I1));
+    else
+        XRatio1 = abs(1 - abs(rt_X_R1 ./ rt_X_I2));
+        XRatio2 = abs(1 - abs(rt_X_R2 ./ rt_X_I2));
+    end
     [~,idx1] = find(XRatio1 == min(XRatio1,[],2,"omitnan"));
     [~,idx2] = find(XRatio2 == min(XRatio2,[],2,"omitnan"));
     r1 = min(XRatio1,[],2,"omitnan");
