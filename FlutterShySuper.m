@@ -1,7 +1,7 @@
 %% FlutterShy Super (Supersonic Flutter Prediction)
 % Alexander Ketzle, Written for the Mississippi State University Space Cowboys and the benefit of the rocketry community
 % First written April 2026
-% Last updated: May 22 2026
+% Last updated: Oct 9 2026
 % Based on the methods by J. P. Kearns, 1962 and Theodorsen and Garrick, 1940
 clc, clear, close all;
 
