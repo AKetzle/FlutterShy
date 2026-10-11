@@ -47,9 +47,11 @@ function fin = calculateFinProperties(fin)
     elseif strcmp(fin.airfoil,'biconvex')
         %fin.midspan = sqrt(h.^2 + (sweep + (ct ./ 2) - (cr ./ 2)).^2);
         fin.volume = t .* h .* (cr + ct) ./ 3;
-        fin.J0 = fin.c .* t .* ((t.^2 ./ 6) + (fin.c.^2 ./ 12));
+        Ix = 4 .* t.^3 .* fin.c ./ 105;
+        Iy = t .* fin.c.^3 ./ 30;
+        fin.J0 = Ix + Iy;
         fin.r_bar = sqrt(h .* fin.J0 ./ (fin.b.^2 .* fin.volume));
-        %TODO: MAKE THIS COMPATIBLE WITH FREQUENCY EQUATIONS
+        fin.foilArea = 4 .* t .* ((fin.c ./ 2) - (fin.c ./ 3));
     end
     fin.m = fin.volume .* fin.density ./ h;
     if (isfield(fin,'E'))
